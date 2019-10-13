@@ -12,14 +12,14 @@ def create_app(test_config=None):
   # create and configure the app
   app = Flask(__name__)
   setup_db(app)
+  CORS(app)
 
-  '''
-  @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
-  '''
+  @app.after_request
+  def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,True')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS')
+    return response
 
-  '''
-  @TODO: Use the after_request decorator to set Access-Control-Allow
-  '''
 
   '''
   @TODO: 
@@ -27,16 +27,33 @@ def create_app(test_config=None):
   for all available categories.
   '''
 
-  @app.route('/questions')
+  @app.route('/categories/<int:category_id>/questions/')
+  def category(category_id):
+    page  = request.args.get('page', 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE  
+    end   = start + QUESTIONS_PER_PAGE
+    questions = Question.query.filter_by(category = category_id+1).all();
+    formatted_questions = [question.format() for question in questions]
+    category = Category.query.filter_by(id = category_id+1).one_or_none()
+    print ("category: ", category.type.lower())
+    return jsonify({"questions":formatted_questions, 
+            "total_questions" : len(formatted_questions),
+            "current_category": {category_id : category.type.lower()}})
+
+  @app.route('/questions/', methods=['GET', 'OPTIONS'])
   def questions():
-    print("hello")
+    page  = request.args.get('page', 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE  
+    end   = start + QUESTIONS_PER_PAGE
     questions = Question.query.all();
-    for question in questions:
-      print("ssssssssssssssssssss: " , format(question))
-      vvv = [question.format() for question in questions]
-      print ('print vvv: ', vvv)
-    print ("categories:", questions)
-    return jsonify({"categories":vvv})
+    formatted_questions = [question.format() for question in questions]
+    categories = Category.query.all()
+    formatted_categories = [category.type.lower() for category in categories]
+    print("formatted_categories: ", formatted_categories)
+    return jsonify({"questions":formatted_questions[start:end], 
+            "total_questions" : len(formatted_questions),
+            "categories" : formatted_categories,
+            "current_category": "1"})
 
   '''
   @TODO: 
