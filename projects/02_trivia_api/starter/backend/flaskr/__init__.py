@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, abort, jsonify
+from flask import Flask, request, abort, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
@@ -21,14 +21,17 @@ def create_app(test_config=None):
     return response
 
 
-  '''
-  @TODO: 
-  Create an endpoint to handle GET requests 
-  for all available categories.
-  '''
+  @app.route('/categories/')
+  def categories():
+    page  = request.args.get('page', 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE  
+    end   = start + QUESTIONS_PER_PAGE
+    categories = Category.query.all()
+    formatted_categories = [category.type for category in categories]
+    return jsonify({"categories": formatted_categories})
 
   @app.route('/categories/<int:category_id>/questions/')
-  def category(category_id):
+  def getCategoryById(category_id):
     page  = request.args.get('page', 1, type=int)
     start = (page - 1) * QUESTIONS_PER_PAGE  
     end   = start + QUESTIONS_PER_PAGE
@@ -86,6 +89,11 @@ def create_app(test_config=None):
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.  
   '''
+
+  @app.route('/questions', methods=['POST'])
+  def addQuestion():
+    print("I am here....")
+    return redirect(url_for('questions'))
 
   '''
   @TODO: 
