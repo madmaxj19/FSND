@@ -16,6 +16,7 @@ def create_app(test_config=None):
 
   @app.after_request
   def after_request(response):
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,True')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS')
     return response
@@ -43,7 +44,7 @@ def create_app(test_config=None):
             "total_questions" : len(formatted_questions),
             "current_category": {category_id : category.type.lower()}})
 
-  @app.route('/questions/', methods=['GET', 'OPTIONS'])
+  @app.route('/questions/', methods=['GET'])
   def questions():
     page  = request.args.get('page', 1, type=int)
     start = (page - 1) * QUESTIONS_PER_PAGE  
@@ -92,8 +93,7 @@ def create_app(test_config=None):
 
   @app.route('/questions', methods=['POST'])
   def addQuestion():
-    print("I am here....")
-    return redirect(url_for('questions'))
+    return redirect(url_for("questions", methods='OPTIONS'))
 
   '''
   @TODO: 
@@ -105,6 +105,15 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
+
+  @app.route('/questions/search', methods=['POST'])
+  def searchQuestion():
+    searchTerm = request.json['searchTerm']
+    if searchTerm != None:
+      questions = Question.query.filter(Question.question.ilike('%'+searchTerm+'%')).all()
+    formatted_questions = [question.format() for question in questions]
+    return jsonify ({"questions" : formatted_questions,
+                      "total_questions" : len(formatted_questions)})
 
   '''
   @TODO: 
@@ -127,6 +136,53 @@ def create_app(test_config=None):
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
   '''
+
+  @app.route('/quizzes', methods=['POST'])
+  def quizzes():
+    print("request.json: ", request.json)
+    previous_questions = request.json['previous_questions']
+    print('previous_questions: ', previous_questions)
+    quiz_category = request.json['quiz_category']
+    print('quiz_category: ', quiz_category)
+    category_name = quiz_category['type']
+    print('category_name', category_name)
+    question_id   = quiz_category['id']
+    print('question_id', question_id)
+
+    if category_name == 'click':
+      catId = random.randrange(1, 7)
+      category = Category.query.filter_by(id = catId).one_or_none()
+    else :
+      category = Category.query.filter_by(type = category_name).one_or_none()
+
+    print ('category.id: ', category.id)
+
+    question = Question.query.filter_by(category = category.id).all()
+
+    index = random.randrange(len(question))
+
+    if len(previous_questions) >= len(question):
+      return  jsonify({"question" : ""})
+    else:
+      counter = 0
+      blnFlag = False
+      if len(previous_questions) != 0:
+        while counter < len(question):
+          if question[index].id not in previous_questions:
+            blnFlag = True
+            break
+          else:
+            newindex   = random.randrange(len(question))
+          if (newindex != index):
+            index      = newindex
+            counter = counter + 1
+          print("counter", counter)
+      else:
+        blnFlag = True
+    if blnFlag:
+      return jsonify({"question" : question[index].format()})
+    else:
+      return  jsonify({"question" : ""})
 
   '''
   @TODO: 
