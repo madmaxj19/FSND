@@ -80,6 +80,12 @@ def create_app(test_config=None):
   This removal will persist in the database and when you refresh the page. 
   '''
 
+  @app.route('/questions/<int:question_id>', methods=['DELETE'])
+  def deleteQuestion(question_id):
+    question = Question.query.filter_by(id = question_id).one_or_none();
+    question.delete();
+    return jsonify ( { "success" : "true" })
+
   '''
   @TODO: 
   Create an endpoint to POST a new question, 
@@ -93,7 +99,12 @@ def create_app(test_config=None):
 
   @app.route('/questions', methods=['POST'])
   def addQuestion():
-    return redirect(url_for("questions", methods='OPTIONS'))
+    question = Question(question=request.json['question'],answer=request.json['answer'] \
+      , difficulty=request.json['difficulty'], category=request.json['category'])
+    question.category = int(question.category) + 1
+    question.insert();
+    print('Record added successfully')
+    return jsonify ( { "success" : "true" })
 
   '''
   @TODO: 
